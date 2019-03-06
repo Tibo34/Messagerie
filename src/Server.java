@@ -1,18 +1,25 @@
 
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.io.IOException;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Scanner;
 
-import javax.crypto.SecretKey;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 class Server{
@@ -27,26 +34,30 @@ class Server{
     	PrivateKey keyPrivate=keyPair.getPrivate();//decode
     	PublicKey keyPublicServer=keyPair.getPublic();//code
     	PublicKey KeyPublicClient=null;
-    	
-		ServerSocket sockserv=null;	
+    	CryptageRSA crypte=null;
 		DataInputStream in;
 		DataOutputStream out;
 		Scanner sc=new Scanner(System.in);
 		String mess="";
-		sockserv=new ServerSocket(2345);     
+		ServerSocket sockserv=new ServerSocket(2345); 
+		byte[]messByte=new byte[128];
 		while(true){
 			try{
 			   Socket sockcli=sockserv.accept();		   
 			   in = new DataInputStream (sockcli.getInputStream());
 			   out = new DataOutputStream (sockcli.getOutputStream());
 			   sendKeyPublic(keyPublicServer,out);
-			   KeyPublicClient=getPublicKeyClient(in);
+			   KeyPublicClient=(PublicKey) getPublicKeyClient(in);
+			   crypte=new CryptageRSA(keyPrivate,KeyPublicClient);
 			   while(true){
-			       try{		       
-			       mess =in.readLine();  
-			       System.out.println(mess);
-			       mess=sc.nextLine()+"\n";
-			       out.write(mess.getBytes());
+			       try{		  
+			    	   	System.out.println("connection ok");
+			    	   	   in.read(messByte);
+					       mess =crypte.decrypteByteToString(messByte);  
+					       System.out.println("client : "+mess);
+					       mess=sc.nextLine()+"\n";
+					       out.write(crypte.crypte(mess.getBytes()));
+					       out.flush();
 			       }
 			       catch(IOException ex){}
 			   }
@@ -59,11 +70,18 @@ class Server{
 			} 
 	 }
 
-	private static PublicKey getPublicKeyClient(DataInputStream in) throws IOException {
-		byte[]b = null;
+	private static Key getPublicKeyClient(DataInputStream in) throws IOException {
+		byte[]b = new byte[4096];
 		in.read(b);
-		PublicKey key=(PublicKey) new SecretKeySpec(b,0,b.length,"RSA");
-		System.out.println(key.getAlgorithm());
+		Key key=null;
+		X509EncodedKeySpec ks=new X509EncodedKeySpec(b);
+		try {
+			KeyFactory fac=KeyFactory.getInstance("RSA");
+			key=fac.generatePublic(ks);
+		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 		return key;
 	}
 
@@ -71,12 +89,12 @@ class Server{
 		try {
 			out.write(keyPublicServer.getEncoded());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		System.out.println("clé public envoyé");
 		
 	}    
-   
+	
+	
     
 }
