@@ -1,14 +1,11 @@
+package messagerie;
 
 
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -25,9 +22,9 @@ public class CryptageRSA {
 		 this.keyPrivate=keyPrivate;
 		 this.keyPublic=keyPublic;
 		 try {
-			this.crypte=crypte.getInstance("RSA");
+			this.crypte=Cipher.getInstance("RSA");
 			this.crypte.init(Cipher.ENCRYPT_MODE, keyPublic);
-			 this.decrypte=decrypte.getInstance("RSA");
+			 this.decrypte=Cipher.getInstance("RSA");			 
 			 this.decrypte.init(Cipher.DECRYPT_MODE, keyPrivate);		
 		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
 						e.printStackTrace();
@@ -61,7 +58,6 @@ public class CryptageRSA {
 	public byte[] decrypteByte(byte[] code){
 		byte[]decode=new byte[128];
 		try {
-			System.out.println(code.length);
 			decode=decrypte.doFinal(code);
 		} catch (IllegalBlockSizeException| BadPaddingException e) {
 				e.printStackTrace();
